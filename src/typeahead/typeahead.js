@@ -30,7 +30,7 @@ angular.module('ui.bootstrap.typeahead', [])
 }])
 
   //options - min length
-  .directive('typeahead', ['$compile', '$q', '$document', 'typeaheadParser', function ($compile, $q, $document, typeaheadParser) {
+  .directive('typeahead', ['$compile', '$q', '$document', '$timeout', 'typeaheadParser', function ($compile, $q, $document, $timeout, typeaheadParser) {
 
   var HOT_KEYS = [9, 13, 27, 38, 40];
 
@@ -42,6 +42,10 @@ angular.module('ui.bootstrap.typeahead', [])
 
       //minimal no of characters that needs to be entered before typeahead kicks-in
       var minSearch = originalScope.$eval(attrs.typeaheadMinLength) || 1;
+
+      //minimal wait time after last character typed before typehead kicks-in
+      var waitTime = originalScope.$eval(attrs.waitTimeMs) || 0;
+      var timeoutId;
 
       //expressions used by typeahead
       var parserResult = typeaheadParser.parse(attrs.typeahead);
@@ -103,7 +107,17 @@ angular.module('ui.bootstrap.typeahead', [])
           return inputValue;
         } else {
           if (inputValue && inputValue.length >= minSearch) {
-            getMatchesAsync(inputValue);
+            if (waitTime > 0) {
+              if (timeoutId) {
+                $timeout.cancel(timeoutId);//cancel previous timeout
+              }
+              timeoutId = $timeout(function () {
+                getMatchesAsync(inputValue);
+              }, waitTime);
+            } else {
+              getMatchesAsync(inputValue);
+            }
+
           }
         }
 
