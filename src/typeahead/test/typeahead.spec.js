@@ -172,14 +172,15 @@ describe('typeahead tests', function () {
 
   describe('typeahead', function () {
 
-    var $scope, $compile, $document;
+    var $scope, $compile, $document, $timeout;
     var changeInputValueTo;
 
-    beforeEach(inject(function (_$rootScope_, _$compile_, _$document_, $sniffer) {
+    beforeEach(inject(function (_$rootScope_, _$compile_, _$document_, _$timeout_, $sniffer) {
       $scope = _$rootScope_;
       $scope.source = ['foo', 'bar', 'baz'];
       $compile = _$compile_;
       $document = _$document_;
+      $timeout = _$timeout_;
       changeInputValueTo = function (element, value) {
         var inputEl = findInput(element);
         inputEl.val(value);
@@ -277,6 +278,23 @@ describe('typeahead tests', function () {
         var element = prepareInputEl("<div><input ng-model='result' typeahead='item for item in source | filter:$viewValue' typeahead-min-length='2'></div>");
         changeInputValueTo(element, 'b');
         expect(element).toBeClosed();
+      });
+
+      it('should open typeahead only when time elapsed since last stroke', function () {
+        var element = prepareInputEl("<div><input ng-model='result' typeahead='item for item in source | filter:$viewValue' typeahead-wait='200'></div>");
+        changeInputValueTo(element, 'a');
+        expect(element).toBeClosed();
+        $timeout.flush();
+        expect(element).toBeOpenWithActive(2, 0);
+      });
+
+      it('should cancel previous timeout when another key is pressed', function () {
+        var element = prepareInputEl("<div><input ng-model='result' typeahead='item for item in source | filter:$viewValue' typeahead-wait='200'></div>");
+        changeInputValueTo(element, 'b');
+        changeInputValueTo(element, 'ba');
+        $timeout.flush();
+        //need to find out getMatchesAsync not being called twice
+        expect(element).toBeOpenWithActive(2, 0);
       });
 
       it('should support custom model selecting function', function () {

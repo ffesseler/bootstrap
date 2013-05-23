@@ -29,7 +29,7 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
   };
 }])
 
-  .directive('typeahead', ['$compile', '$parse', '$q', '$document', '$position', 'typeaheadParser', function ($compile, $parse, $q, $document, $position, typeaheadParser) {
+  .directive('typeahead', ['$compile', '$parse', '$q', '$document', '$position', '$timeout', 'typeaheadParser', function ($compile, $parse, $q, $document, $position, $timeout, typeaheadParser) {
 
   var HOT_KEYS = [9, 13, 27, 38, 40];
 
@@ -41,6 +41,10 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
 
       //minimal no of characters that needs to be entered before typeahead kicks-in
       var minSearch = originalScope.$eval(attrs.typeaheadMinLength) || 1;
+
+      //minimal wait time after last character typed before typehead kicks-in
+      var waitTime = originalScope.$eval(attrs.typeaheadWait) || 0;
+      var timeoutId;
 
       //expressions used by typeahead
       var parserResult = typeaheadParser.parse(attrs.typeahead);
@@ -127,7 +131,16 @@ angular.module('ui.bootstrap.typeahead', ['ui.bootstrap.position'])
           return inputValue;
         } else {
           if (inputValue && inputValue.length >= minSearch) {
-            getMatchesAsync(inputValue);
+            if (waitTime > 0) {
+              if (timeoutId) {
+                $timeout.cancel(timeoutId);//cancel previous timeout
+              }
+              timeoutId = $timeout(function () {
+                getMatchesAsync(inputValue);
+              }, waitTime);
+            } else {
+              getMatchesAsync(inputValue);
+            }
           }
         }
 
